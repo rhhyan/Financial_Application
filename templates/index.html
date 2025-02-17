@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplicação Financeira</title>
+    <link rel="stylesheet" href="../static/css/style.css">
+</head>
+<body>
+    <h1>Minhas Transações</h1>
+    <div id="transacoes"></div>
+    
+    <h2>Registrar Transação</h2>
+    <form id="formTransacao">
+        <input type="number" id="valor" placeholder="Valor" required>
+        <input type="text" id="categoria" placeholder="Categoria" required>
+        <input type="text" id="tipo" placeholder="Tipo (receita/despesa)" required>
+        <textarea id="descricao" placeholder="Descrição"></textarea>
+        <input type="number" id="usuario_id" placeholder="ID do Usuário" required>
+        <button type="submit">Registrar</button>
+    </form>
+
+    <script src="../static/js/script.js"></script>
+</body>
+</html>
