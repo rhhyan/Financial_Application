@@ -3,23 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aplicação Financeira</title>
-    <link rel="stylesheet" href="../static/css/style.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <title>Controle Financeiro</title>
 </head>
 <body>
-    <h1>Minhas Transações</h1>
-    <div id="transacoes"></div>
-    
-    <h2>Registrar Transação</h2>
-    <form id="formTransacao">
-        <input type="number" id="valor" placeholder="Valor" required>
-        <input type="text" id="categoria" placeholder="Categoria" required>
-        <input type="text" id="tipo" placeholder="Tipo (receita/despesa)" required>
-        <textarea id="descricao" placeholder="Descrição"></textarea>
-        <input type="number" id="usuario_id" placeholder="ID do Usuário" required>
-        <button type="submit">Registrar</button>
-    </form>
-
-    <script src="../static/js/script.js"></script>
+    <h1>Controle Financeiro</h1>
+    <a href="{{ url_for('add') }}">Adicionar Despesa/Receita</a>
+    <ul>
+        {% for item in despesas_receitas %}
+        <li>
+            {{ item.descricao }} - {{ item.valor }} - {{ item.categoria }} - {{ item.tipo }}
+            <a href="{{ url_for('edit', id=item.id) }}">Editar</a>
+            <a href="{{ url_for('delete', id=item.id) }}">Excluir</a>
+        </li>
+        {% endfor %}
+    </ul>
 </body>
 </html>

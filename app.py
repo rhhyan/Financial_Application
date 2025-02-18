@@ -1,80 +1,91 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, render_template, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
-from flask_migrate import Migrate
 
-# Criação da instância da aplicação
+# Criando a instância do Flask
 app = Flask(__name__)
 
 # Configurações do banco de dados
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///financeiro.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'  # Usando SQLite
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # Desativa o rastreamento de modificações
+app.config['SECRET_KEY'] = 'sua_chave_secreta'
 
-# Criação do objeto db
+# Inicializando o banco de dados
 db = SQLAlchemy(app)
-migrate = Migrate(app, db)
 
-
-#rota do front
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-# Modelo do Usuario
-class Usuario(db.Model):
+# Definindo os modelos
+class DespesaReceita(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    nome = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(100), unique=True, nullable=False)
-
-    def __repr__(self):
-        return f'<Usuario {self.nome}>'
-    
-# Definição do modelo Transacao
-class Transacao(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    descricao = db.Column(db.String(100), nullable=False)
     valor = db.Column(db.Float, nullable=False)
-    data = db.Column(db.DateTime, nullable=False)
     categoria = db.Column(db.String(50), nullable=False)
-    tipo = db.Column(db.String(50), nullable=False)  # 'receita' ou 'despesa'
-    descricao = db.Column(db.String(255), nullable=True)
-    usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False)
-
-    usuario = db.relationship('Usuario', backref='transacoes')
+    tipo = db.Column(db.String(50), nullable=False)
+    usuario_id = db.Column(db.Integer, nullable=False)
 
     def __repr__(self):
-        return f'<Transacao {self.valor} - {self.tipo}>'
+        return f'<DespesaReceita {self.id} - {self.descricao}>'
 
-# Criando o banco de dados (se necessário)
+# Criando o banco de dados e tabelas
 with app.app_context():
     db.create_all()
 
-# Rota para registrar uma transação
-@app.route('/registrar_transacao', methods=['POST'])
-def registrar_transacao():
-    data = request.get_json()
-    novo_registro = Transacao(
-        valor=data['valor'],
-        data=datetime.strptime(data['data'], '%Y-%m-%d'),
-        categoria=data['categoria'],
-        tipo=data['tipo'],
-        descricao=data['descricao'],
-        usuario_id=data['usuario_id']
-    )
-    db.session.add(novo_registro)
-    db.session.commit()
-    return jsonify({'message': 'Transação registrada com sucesso!'}), 201
+# Rota para a página inicial
+@app.route('/')
+def index():
+    despesas_receitas = DespesaReceita.query.all()  # Obtém todas as despesas e receitas
+    return render_template('index.html', despesas_receitas=despesas_receitas)
 
-# Rota para exibir o saldo
-@app.route('/saldo', methods=['GET'])
-def obter_saldo():
-    usuario_id = request.args.get('usuario_id')
-    receitas = Transacao.query.filter_by(usuario_id=usuario_id, tipo='receita').all()
-    despesas = Transacao.query.filter_by(usuario_id=usuario_id, tipo='despesa').all()
+# Rota para adicionar uma nova despesa ou receita
+@app.route('/add', methods=['POST', 'GET'])
+def add():
+    if request.method == 'POST':
+        descricao = request.form['descricao']
+        valor = request.form['valor']
+        categoria = request.form['categoria']
+        tipo = request.form['tipo']
+        usuario_id = request.form['usuario_id']
+        
+        nova_despesa_receita = DespesaReceita(
+            descricao=descricao,
+            valor=valor,
+            categoria=categoria,
+            tipo=tipo,
+            usuario_id=usuario_id
+        )
+        
+        db.session.add(nova_despesa_receita)
+        db.session.commit()
+        
+        return redirect(url_for('index'))  # Redireciona de volta para a página inicial
 
-    saldo = sum([t.valor for t in receitas]) - sum([t.valor for t in despesas])
+    return render_template('add.html')  # Página para adicionar uma nova despesa ou receita
 
-    return jsonify({'saldo': saldo})
+# Rota para editar uma despesa ou receita
+@app.route('/edit/<int:id>', methods=['POST', 'GET'])
+def edit(id):
+    despesa_receita = DespesaReceita.query.get_or_404(id)  # Obtém o item pelo ID
+    
+    if request.method == 'POST':
+        despesa_receita.descricao = request.form['descricao']
+        despesa_receita.valor = request.form['valor']
+        despesa_receita.categoria = request.form['categoria']
+        despesa_receita.tipo = request.form['tipo']
+        despesa_receita.usuario_id = request.form['usuario_id']
+        
+        db.session.commit()  # Salva as mudanças no banco de dados
+        
+        return redirect(url_for('index'))  # Redireciona para a página inicial
 
-# Rota para iniciar o servidor
-if __name__ == '__main__':
+    return render_template('edit.html', despesa_receita=despesa_receita)
+
+# Rota para excluir uma despesa ou receita
+@app.route('/delete/<int:id>', methods=['GET'])
+def delete(id):
+    despesa_receita = DespesaReceita.query.get_or_404(id)  # Obtém o item pelo ID
+    db.session.delete(despesa_receita)  # Deleta o item
+    db.session.commit()  # Salva a exclusão no banco de dados
+    
+    return redirect(url_for('index'))  # Redireciona para a página inicial
+
+"""Rodando"""
+if __name__ == "__main__":
     app.run(debug=True)
